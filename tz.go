@@ -13,14 +13,7 @@ func TimeToTZ(t time.Time) TZ {
 }
 
 func (tz TZ) Location(t time.Time) *time.Location {
-	var localOffset int
-	if t.Location() == time.Local {
-		_, localOffset = t.Zone()
-	} else {
-		_, localOffset = time.Now().Zone()
-	}
-
-	if localOffset == int(tz)*60 {
+	if _, local := t.Local().Zone(); local == int(tz)*60 {
 		return time.Local
 	} else {
 		return time.FixedZone("", int(tz)*60)
@@ -28,8 +21,7 @@ func (tz TZ) Location(t time.Time) *time.Location {
 }
 
 func (tz TZ) String() string {
-	var zero time.Time
-	return zero.In(time.FixedZone("", int(tz)*60)).Format("-07:00")
+	return time.Time{}.In(time.FixedZone("", int(tz)*60)).Format("-07:00")
 }
 
 func (tz TZ) MarshalText() ([]byte, error) {
