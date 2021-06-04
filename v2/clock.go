@@ -6,12 +6,14 @@ import (
 )
 
 var (
-	MockClockSpeed time.Duration = time.Millisecond / 2
+	MockTimerSpeed  time.Duration = time.Millisecond / 2
+	MockTickerSpeed time.Duration = time.Millisecond
 )
 
 type Clock interface {
 	Now() time.Time
 	NewTimer(d time.Duration) *Timer
+	NewTicker(d time.Duration) *Ticker
 }
 
 type TimeOp struct {
@@ -39,15 +41,25 @@ func (c *clock) NewTimer(d time.Duration) *Timer {
 	}
 }
 
+func (c *clock) NewTicker(d time.Duration) *Ticker {
+	t := time.NewTicker(d)
+	return &Ticker{
+		C:      t.C,
+		ticker: t,
+	}
+}
+
 //====================================================================
 
 type MockClock struct {
-	NowScript   []time.Duration
-	TimerScript [][]time.Duration
-	Ops         []TimeOp
-	time        time.Time
-	iNow        int
-	iTimer      int
+	NowScript    []time.Duration
+	TimerScript  [][]time.Duration
+	TickerScript [][]time.Duration
+	Ops          []TimeOp
+	time         time.Time
+	iNow         int
+	iTimer       int
+	iTicker      int
 }
 
 func NewMockClock(t time.Time) *MockClock {
@@ -77,10 +89,10 @@ func (m *MockClock) now() time.Time {
 func (m *MockClock) NewTimer(d time.Duration) *Timer {
 	m.iTimer++
 	var no int
-	rd := MockClockSpeed
+	fd := MockTimerSpeed
 	if m.iTimer <= len(m.TimerScript) {
 		no = m.iTimer
-		rd = m.TimerScript[m.iTimer-1][0]
+		fd = m.TimerScript[m.iTimer-1][0]
 	}
 
 	m.Ops = append(m.Ops, TimeOp{"timer", d})
@@ -89,9 +101,35 @@ func (m *MockClock) NewTimer(d time.Duration) *Timer {
 		C:    ch,
 		no:   no,
 		mock: m,
-		fake: time.AfterFunc(rd, func() {
+		fake: time.AfterFunc(fd, func() {
 			ch <- m.now()
 		}),
+	}
+}
+
+func (m *MockClock) NewTicker(d time.Duration) *Ticker {
+	m.iTicker++
+	var no int
+	fd := MockTickerSpeed
+	if m.iTicker <= len(m.TickerScript) {
+		no = m.iTicker
+		fd = m.TickerScript[m.iTicker-1][0]
+	}
+
+	m.Ops = append(m.Ops, TimeOp{"ticker", d})
+	ch := make(chan time.Time, 1)
+	fake := time.NewTicker(fd)
+	go func() {
+		for _ = range fake.C {
+			ch <- m.now()
+		}
+	}()
+
+	return &Ticker{
+		C:    ch,
+		no:   no,
+		mock: m,
+		fake: fake,
 	}
 }
 
@@ -123,15 +161,60 @@ func (t *Timer) Reset(d time.Duration) bool {
 		return t.timer.Reset(d)
 	}
 
-	rd := MockClockSpeed
+	fd := MockTimerSpeed
 	if t.no > 0 {
 		t.i++
 		if t.i <= len(t.mock.TimerScript[t.no-1]) {
-			rd = t.mock.TimerScript[t.no-1][t.i-1]
+			fd = t.mock.TimerScript[t.no-1][t.i-1]
 		}
 	}
 	t.mock.Ops = append(t.mock.Ops, TimeOp{
 		fmt.Sprintf("timer-%d.reset", t.no), d,
 	})
-	return t.fake.Reset(rd)
+	return t.fake.Reset(fd)
+}
+
+//====================================================================
+
+type Ticker struct {
+	C      <-chan time.Time
+	ticker *time.Ticker
+	no     int
+	i      int
+	mock   *MockClock
+	fake   *time.Ticker
+}
+
+func (t *Ticker) Stop() {
+	if t.ticker != nil {
+		t.ticker.Stop()
+		return
+	}
+
+	t.mock.Ops = append(t.mock.Ops, TimeOp{
+		fmt.Sprintf("ticker-%d.stop", t.no),
+		0,
+	})
+	t.fake.Stop()
+	return
+}
+
+func (t *Ticker) Reset(d time.Duration) {
+	if t.ticker != nil {
+		t.ticker.Reset(d)
+		return
+	}
+
+	fd := MockTickerSpeed
+	if t.no > 0 {
+		t.i++
+		if t.i <= len(t.mock.TickerScript[t.no-1]) {
+			fd = t.mock.TickerScript[t.no-1][t.i-1]
+		}
+	}
+	t.mock.Ops = append(t.mock.Ops, TimeOp{
+		fmt.Sprintf("ticker-%d.reset", t.no), d,
+	})
+	t.fake.Reset(fd)
+	return
 }
