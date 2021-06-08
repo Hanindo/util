@@ -43,8 +43,8 @@ func (dt *Date) UnmarshalText(b []byte) (err error) {
 
 func (dt Date) MarshalBinary() (b []byte, err error) {
 	y, m, d := dt.tm.Date()
-	if y < 1 || y > 4094 {
-		err = fmt.Errorf("year outside range 1-4094: %d", y)
+	if y < 0 || y > 4094 {
+		err = fmt.Errorf("year outside range 0-4094: %d", y)
 		return
 	}
 

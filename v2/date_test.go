@@ -39,9 +39,9 @@ var _ = Describe("Date", func() {
 			Expect(dd.UnmarshalBinary(b)).To(Succeed(), "binary decode err")
 			Expect(dd.String()).To(Equal(d.String()), "binary decode")
 		},
-		Entry("UTC", "0001-01-01 +00:00", []byte{0xB0, 0x01, 0x00, 0x40},
-			"0001-01-01T12:13:14Z",
-			"0001-01-01T00:00:00Z"),
+		Entry("UTC", "0000-01-01 +00:00", []byte{0xB0, 0x00, 0x00, 0x40},
+			"0000-01-01T12:13:14Z",
+			"0000-01-01T00:00:00Z"),
 		Entry("UTC+1", "2000-01-02 +01:00", []byte{0xB7, 0xD0, 0x00, 0xC4},
 			"2000-01-02T12:13:14+01:00",
 			"2000-01-02T00:00:00+01:00"),
