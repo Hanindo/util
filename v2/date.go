@@ -10,50 +10,68 @@ const (
 	date_format = "2006-01-02 -07:00"
 )
 
+// Date represents a date with timezone.
+//
+// This date can be efficiently encoded to 4 bytes using binary format similar
+// to Temporenc https://temporenc.org but with custom type tag.
+// The bits are 4 bits type tag ``0b1011'', 21 bits of date component
+// (y=12 + m=4 + d=5) and 7 bits of time zone offset component.
 type Date struct {
 	tm time.Time
 }
 
+// MakeDate returns a date from t time.
 func MakeDate(t time.Time) Date {
 	return Date{
 		tm: TruncDate(t),
 	}
 }
 
-func (dt Date) Equal(o Date) bool {
-	return dt.Time().Equal(o.Time())
+// Equal report whether d and o represent the same date. This method is
+// necessary because date is implemented using time.Time.
+func (d Date) Equal(o Date) bool {
+	return d.Time().Equal(o.Time())
 }
 
-func (dt Date) Time() time.Time {
-	return dt.tm
+// Time returns the starting time of date.
+func (d Date) Time() time.Time {
+	return d.tm
 }
 
-func (dt Date) String() string {
-	return dt.tm.Format(date_format)
+// String returns date formatted using time format string
+//     "2006-01-02 -07:00"
+func (d Date) String() string {
+	return d.tm.Format(date_format)
 }
 
-func (dt Date) MarshalText() ([]byte, error) {
-	return []byte(dt.String()), nil
+// MarshalText implements the encoding.TextMarshaler interface.
+// This is basically the String() output.
+func (d Date) MarshalText() ([]byte, error) {
+	return []byte(d.String()), nil
 }
 
-func (dt *Date) UnmarshalText(b []byte) (err error) {
-	dt.tm, err = time.Parse(date_format, string(b))
+// UnmarshalText implements the encoding.TextUnmarshaler interface.
+// The date is expected exactly like String() format.
+func (d *Date) UnmarshalText(b []byte) (err error) {
+	d.tm, err = time.Parse(date_format, string(b))
 	return
 }
 
-func (dt Date) MarshalBinary() (b []byte, err error) {
-	y, m, d := dt.tm.Date()
+// MarshalBinary implements the encoding.BinaryMarshaler interface.
+// See the documentation on the Date type for more details.
+func (d Date) MarshalBinary() (b []byte, err error) {
+	y, m, day := d.tm.Date()
 	if y < 0 || y > 4094 {
 		err = fmt.Errorf("year outside range 0-4094: %d", y)
 		return
 	}
 
-	_, z := dt.tm.Zone()
+	_, z := d.tm.Zone()
 
-	var n uint32 = 0b1011 << 28
+	var n uint32 = 0xB << 28
 	n |= uint32(y) << 16
 	n |= (uint32(m) - 1) << 12
-	n |= uint32(d-1) << 7
+	n |= uint32(day-1) << 7
 	n |= uint32(z/900 + 64)
 
 	b = make([]byte, 4)
@@ -61,7 +79,9 @@ func (dt Date) MarshalBinary() (b []byte, err error) {
 	return
 }
 
-func (dt *Date) UnmarshalBinary(b []byte) error {
+// UnmarshalBinary implements the encoding.BinaryUnmarshaler interface.
+// See the documentation on the Date type for more details.
+func (d *Date) UnmarshalBinary(b []byte) error {
 	if len(b) != 4 {
 		return fmt.Errorf("invalid length: %d", len(b))
 	}
@@ -78,9 +98,9 @@ func (dt *Date) UnmarshalBinary(b []byte) error {
 	if m > 12 {
 		return fmt.Errorf("invalid month: %d", m)
 	}
-	d := int(b[2]&0x0F<<1) | int(b[3]>>7) + 1
-	if d > 31 {
-		return fmt.Errorf("invalid day: %d", d)
+	day := int(b[2]&0x0F<<1) | int(b[3]>>7) + 1
+	if day > 31 {
+		return fmt.Errorf("invalid day: %d", day)
 	}
 
 	z := int(b[3] & 0x7F)
@@ -96,12 +116,12 @@ func (dt *Date) UnmarshalBinary(b []byte) error {
 		loc = time.FixedZone("", rz*60)
 	}
 
-	tm := time.Date(y, time.Month(m), d, 0, 0, 0, 0, loc)
+	tm := time.Date(y, time.Month(m), day, 0, 0, 0, 0, loc)
 	ay, am, ad := tm.Date()
-	if ay != y || am != time.Month(m) || ad != d {
-		return fmt.Errorf("invalid date: %04d-%02d-%02d", y, m, d)
+	if ay != y || am != time.Month(m) || ad != day {
+		return fmt.Errorf("invalid date: %04d-%02d-%02d", y, m, day)
 	}
 
-	dt.tm = tm
+	d.tm = tm
 	return nil
 }

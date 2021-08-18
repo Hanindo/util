@@ -10,8 +10,10 @@ Currently:
 
 Incompatible Changes:
 - Remove TZ
+- Date struct fields is private now
 - Remove `SHORT_TIME` constant
 - Remove FormatSec()
+- Remove MkdirP()
 
 ## License
 Copyright © 2021-present [Hanindo Group](https://github.com/hanindo).

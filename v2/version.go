@@ -6,6 +6,8 @@ import (
 	"strconv"
 )
 
+// Version represents semantic versioning data.
+// This struct has CBOR ``toarray'' struct tags.
 type Version struct {
 	_     struct{} `cbor:",toarray"`
 	Major uint8
@@ -13,6 +15,7 @@ type Version struct {
 	Patch uint8
 }
 
+// MakeVersion composes a version from its components.
 func MakeVersion(major, minor, patch uint8) Version {
 	return Version{
 		Major: major,
@@ -21,22 +24,28 @@ func MakeVersion(major, minor, patch uint8) Version {
 	}
 }
 
+// Before reports whether the version v is before o.
 func (v Version) Before(o Version) bool {
 	return v.Major < o.Major ||
-		(v.Major == o.Major &&
-			(v.Minor < o.Minor || (v.Minor == o.Minor && v.Patch < o.Patch)))
+		(v.Major == o.Major && (v.Minor < o.Minor ||
+			(v.Minor == o.Minor && v.Patch < o.Patch)))
 }
 
+// String returns a string representing the version.
 func (v Version) String() string {
 	return fmt.Sprintf("%d.%d.%d", v.Major, v.Minor, v.Patch)
 }
 
+// MarshalText implements the encoding.TextMarshaler interface.
+// This is basically the String() output.
 func (v Version) MarshalText() ([]byte, error) {
 	return []byte(v.String()), nil
 }
 
 var versionRE = regexp.MustCompile(`^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$`)
 
+// UnmarshalText implements the encoding.TextUnmarshaler interface.
+// The version is expected exactly like String() format.
 func (v *Version) UnmarshalText(b []byte) error {
 	if !versionRE.Match(b) {
 		return fmt.Errorf("Invalid text for %T: %q", v, b)
