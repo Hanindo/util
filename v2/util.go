@@ -53,7 +53,7 @@ func IsHex(b []byte) bool {
 // will be the last.
 func BitString(buff []byte) string {
 	var s string
-	for i, _ := range buff {
+	for i := range buff {
 		b := buff[len(buff)-i-1]
 		if i > 0 {
 			s += " "
@@ -68,6 +68,48 @@ func BitString(buff []byte) string {
 // and the bytes will be space separated.
 func FancyHex(b []byte) string {
 	return strings.ReplaceAll(fmt.Sprintf("% x", string(b)), "0", ".")
+}
+
+// HexWrap returns that FancyHex that wrap.
+func HexWrap(b []byte, prefix, postfix, indent string, first, next int) string {
+	if len(prefix)+len(postfix)+len(b)*3-1 <= first {
+		return prefix + FancyHex(b) + postfix
+	}
+
+	var sb strings.Builder
+	sb.WriteString(prefix)
+	sb.WriteByte('\n')
+	l := (next - len(indent) + 1) / 3
+	for i, e := 0, 0; i < len(b); i = e {
+		e = i + l
+		if e > len(b) {
+			e = len(b)
+		}
+		sb.WriteString(indent)
+		sb.WriteString(FancyHex(b[i:e]))
+		sb.WriteByte('\n')
+	}
+	sb.WriteString(postfix)
+	return sb.String()
+}
+
+// HexWrapper returns a struct that will HexWrap() on String(),
+// handy for optional logging.
+func HexWrapper(b []byte, pre, post, ind string, first, next int) hexWrapper {
+	return hexWrapper{b, pre, post, ind, first, next}
+}
+
+type hexWrapper struct {
+	b     []byte
+	pre   string
+	post  string
+	ind   string
+	first int
+	next  int
+}
+
+func (h hexWrapper) String() string {
+	return HexWrap(h.b, h.pre, h.post, h.ind, h.first, h.next)
 }
 
 // Indent prepend i to all s lines.
@@ -102,6 +144,24 @@ func SpaceZero(s string) string {
 	} else {
 		return str
 	}
+}
+
+// Comma put comma or space in list of indexes.
+func Comma(s string, idxs []int) string {
+	var b strings.Builder
+	b.Grow(len(s) + len(idxs))
+	var last int
+	for _, idx := range idxs {
+		b.WriteString(s[last:idx])
+		if s[idx-1] != ' ' && s[idx] != ' ' {
+			b.WriteByte(',')
+		} else {
+			b.WriteByte(' ')
+		}
+		last = idx
+	}
+	b.WriteString(s[last:])
+	return b.String()
 }
 
 // Round x number to d decimal points.

@@ -87,6 +87,53 @@ var _ = DescribeTable("FancyHex",
 	Entry("four", []byte{0x00, 0x00, 0x01, 0x9F}, ".. .. .1 9f"),
 )
 
+var _ = DescribeTable("HexWrap",
+	func(b []byte, x string) {
+		Expect(HexWrap(b, "raw tx: [", "]", "  ", 54, 80)).To(Equal(x))
+	},
+	Entry("in first",
+		[]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14},
+		"raw tx: [.. .1 .2 .3 .4 .5 .6 .7 .8 .9 .a .b .c .d .e]"),
+	Entry("one next",
+		[]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
+			14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25},
+		`raw tx: [
+  .. .1 .2 .3 .4 .5 .6 .7 .8 .9 .a .b .c .d .e .f 1. 11 12 13 14 15 16 17 18 19
+]`),
+	Entry("two next",
+		[]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+			10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+			20, 21, 22, 23, 24, 25, 26, 27, 28, 29},
+		`raw tx: [
+  .. .1 .2 .3 .4 .5 .6 .7 .8 .9 .a .b .c .d .e .f 1. 11 12 13 14 15 16 17 18 19
+  1a 1b 1c 1d
+]`),
+)
+
+var _ = DescribeTable("HexWrapper",
+	func(b []byte, x string) {
+		Expect(HexWrapper(b, "raw tx: [", "]", "  ", 54, 80).String()).
+			To(Equal(x))
+	},
+	Entry("in first",
+		[]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14},
+		"raw tx: [.. .1 .2 .3 .4 .5 .6 .7 .8 .9 .a .b .c .d .e]"),
+	Entry("one next",
+		[]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
+			14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25},
+		`raw tx: [
+  .. .1 .2 .3 .4 .5 .6 .7 .8 .9 .a .b .c .d .e .f 1. 11 12 13 14 15 16 17 18 19
+]`),
+	Entry("two next",
+		[]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+			10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+			20, 21, 22, 23, 24, 25, 26, 27, 28, 29},
+		`raw tx: [
+  .. .1 .2 .3 .4 .5 .6 .7 .8 .9 .a .b .c .d .e .f 1. 11 12 13 14 15 16 17 18 19
+  1a 1b 1c 1d
+]`),
+)
+
 var _ = DescribeTable("Indent",
 	func(i, s, x string) {
 		Expect(Indent(s, i)).To(Equal(x))
@@ -147,6 +194,15 @@ var _ = DescribeTable("SpaceZero",
 		"a 12.1 b 34.56 c 567.891 d 2345.6789 e",
 		"a 12.1 b 34.56 c 567.891 d 2345.6789 e"),
 )
+
+var _ = Describe("Comma", func() {
+	It("should put comma in the right places", func() {
+		//      0123456789
+		//          ^  ^
+		str := "x:   16500"
+		Expect(Comma(str, []int{4, 7})).To(Equal("x:    16,500"))
+	})
+})
 
 var _ = DescribeTable("Round",
 	func(n float64, d int, x float64) {
