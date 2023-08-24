@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	date_format = "2006-01-02 -07:00"
+	DATE_FORMAT = "2006-01-02 -07:00"
 )
 
 // Date represents a date with timezone.
@@ -41,7 +41,7 @@ func (d Date) Time() time.Time {
 // String returns date formatted using time format string
 //     "2006-01-02 -07:00"
 func (d Date) String() string {
-	return d.tm.Format(date_format)
+	return d.tm.Format(DATE_FORMAT)
 }
 
 // MarshalText implements the encoding.TextMarshaler interface.
@@ -53,7 +53,7 @@ func (d Date) MarshalText() ([]byte, error) {
 // UnmarshalText implements the encoding.TextUnmarshaler interface.
 // The date is expected exactly like String() format.
 func (d *Date) UnmarshalText(b []byte) (err error) {
-	d.tm, err = time.Parse(date_format, string(b))
+	d.tm, err = time.Parse(DATE_FORMAT, string(b))
 	return
 }
 

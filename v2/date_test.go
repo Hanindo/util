@@ -2,11 +2,10 @@ package util_test
 
 import (
 	"encoding/json"
-	. "github.com/hanindo/util/v2"
 	"time"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/hanindo/util/v2"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
